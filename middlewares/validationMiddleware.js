@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const { createError } = require("../helpers");
 
 module.exports = {
   addContactValidation: (req, res, next) => {
@@ -13,13 +14,21 @@ module.exports = {
       phone: Joi.string()
         .pattern(/\+?[0-9\s\-/(/)]+/, "numbers")
         .required(),
+      favorite: Joi.bool(),
     });
     const validationResult = schema.validate(req.body);
     if (validationResult.error) {
-      return res.status(400).json({
-        message: "missing fields",
-        status: validationResult.error.details[0].message,
-      });
+      throw createError(400, validationResult.error.details[0].message);
+    }
+    next();
+  },
+  updateFavoriteSchema: (req, res, next) => {
+    const schema = Joi.object({
+      favorite: Joi.bool().required(),
+    });
+    const validationResult = schema.validate(req.body);
+    if (validationResult.error) {
+      throw createError(400, validationResult.error.details[0].message);
     }
     next();
   },
