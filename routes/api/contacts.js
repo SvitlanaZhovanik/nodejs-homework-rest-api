@@ -5,7 +5,7 @@ const { createError } = require("../../helpers");
 const {
   addContactValidation,
   updateFavoriteSchema,
-} = require("../../middlewares/validationMiddleware");
+} = require("../../middlewares/validationContactMiddleware");
 
 const router = express.Router();
 
