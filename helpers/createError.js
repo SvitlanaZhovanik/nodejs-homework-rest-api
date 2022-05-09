@@ -1,4 +1,5 @@
 const statusMessages = {
+  204: "No Content",
   400: "Bad Request",
   401: "Unauthorized",
   404: "Not found",

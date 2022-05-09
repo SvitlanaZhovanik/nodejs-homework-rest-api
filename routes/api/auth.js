@@ -1,7 +1,12 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
 const { User, schemas } = require("../../models/user");
 const { createError } = require("../../helpers");
+
+const { SECRET_KEY } = process.env;
+const { auth } = require("../../middlewares");
 
 const router = express.Router();
 
@@ -31,9 +36,9 @@ router.post("/signup", async (req, res, next) => {
 
 router.post("/login", async (req, res, next) => {
   try {
-    const { error } = schemas.register.validate(req.body);
+    const { error } = schemas.login.validate(req.body);
     if (error) {
-      throw createError(400);
+      throw createError(400, error.message);
     }
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -44,6 +49,53 @@ router.post("/login", async (req, res, next) => {
     if (!passwordCompare) {
       throw createError(401, "Email or password is wrong");
     }
+    const payload = {
+      id: user._id,
+    };
+    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+    const userUpdate = await User.findByIdAndUpdate(user._id, { token });
+    res.status(200).json({
+      token,
+      user: {
+        email: userUpdate.email,
+        subscription: userUpdate.subscription,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+router.get("/current", auth, async (req, res) => {
+  const { email, subscription } = req.user;
+  res.status(200).json({
+    email,
+    subscription,
+  });
+});
+router.get("/logout", auth, async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+    await User.findByIdAndUpdate(_id, { token: null });
+    res.status(204);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/", auth, async (req, res, next) => {
+  try {
+    const { error } = schemas.updateSubscription.validate(req.body);
+    if (error) {
+      throw createError(400);
+    }
+    const { _id } = req.user;
+    const userUpdate = await User.findByIdAndUpdate(_id, req.body, {
+      new: true,
+    });
+    res.status(201).json({
+      email: userUpdate.email,
+      subscription: userUpdate.subscription,
+    });
   } catch (error) {
     next(error);
   }
